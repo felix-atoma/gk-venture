@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum ServiceType {
+  LEGAL_DOCUMENTS
+  TRANSLATION_INTERPRETATION
+  MATRIMONIAL_CIVIL
+  CONSULTATION
+  OTHER
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+enum SignatureStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  CANCELLED
+}
+
+model AdminUser {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               Role      @default(STAFF)
+  active             Boolean   @default(true)
+  /// Set for new accounts and after a reset; the user must choose a new password before doing anything else.
+  mustChangePassword Boolean   @default(false)
+  /// Bumped on password change/reset/deactivation so existing sessions stop working.
+  tokenVersion       Int       @default(0)
+  /// TOTP secret, encrypted with FILE_ENCRYPTION_KEY. Present but not enabled while setup is pending.
+  totpSecret         String?
+  totpEnabled        Boolean   @default(false)
+  /// Last accepted TOTP time-step, to block code reuse.
+  totpLastStep       Int?
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  signatureRequests SignatureRequest[]
+}
+
+/// Private uploads (inquiry attachments, documents to sign, signed PDFs).
+/// Bytes live on disk encrypted with AES-256-GCM; sha256 is of the plaintext.
+model StoredFile {
+  id           String   @id @default(cuid())
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String   @unique
+  sha256       String
+  createdAt    DateTime @default(now())
+
+  inquiryId String?
+  inquiry   Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+}
+
+model Inquiry {
+  id          String        @id @default(cuid())
+  fullName    String
+  phone       String
+  email       String
+  service     ServiceType
+  message     String
+  status      InquiryStatus @default(NEW)
+  ipAddress   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  attachments StoredFile[]
+
+  @@index([status, createdAt])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  reference    String        @unique
+  fullName     String
+  email        String
+  phone        String
+  service      ServiceType
+  description  String?
+  /// Amount in pesewas (GHS x 100)
+  amount       Int
+  currency     String        @default("GHS")
+  status       PaymentStatus @default(PENDING)
+  channel      String?
+  paidAt       DateTime?
+  providerData Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model SignatureRequest {
+  id              String          @id @default(cuid())
+  /// SHA-256 of the signing token; the raw token only ever lives in the emailed link.
+  tokenHash       String          @unique
+  title           String
+  message         String?
+  signerName      String
+  signerEmail     String
+  status          SignatureStatus @default(PENDING)
+  originalFileId  String
+  originalSha256  String
+  signedFileId    String?
+  signedSha256    String?
+  typedName       String?
+  signerIp        String?
+  signerUserAgent String?
+  expiresAt       DateTime
+  viewedAt        DateTime?
+  signedAt        DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id])
+
+  @@index([status, createdAt])
+}
+
+/// Append-only audit trail for documents, signatures, payments and admin actions.
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  actor      String
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+/// Editable site copy (key -> plain text). Frontend falls back to built-in defaults.
+model ContentBlock {
+  key       String   @id
+  value     String
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+model GalleryPhoto {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String
+  court     String?
+  role      String?
+  year      Int?
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

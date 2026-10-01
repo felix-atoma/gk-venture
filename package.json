@@ -1,0 +1,14 @@
+{
+  "name": "gk-ventures",
+  "private": true,
+  "description": "G|K Ventures - kadawalegalservices.com (React + NestJS + Prisma + PostgreSQL)",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "db:setup": "npm --prefix server run db:migrate && npm --prefix server run db:seed",
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm --prefix server run start:dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix server run build && npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
