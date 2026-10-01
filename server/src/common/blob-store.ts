@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { mkdirSync } from 'fs';
 import { readFile, unlink, writeFile } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
+import { PrismaService } from '../prisma/prisma.service';
 
 /** Where uploaded bytes live. Keys look like "private/<uuid>.bin" or "public/<uuid>.jpg". */
 export interface BlobStore {
@@ -71,8 +72,29 @@ class S3BlobStore implements BlobStore {
   }
 }
 
-export function createBlobStore(config: ConfigService): BlobStore {
+/** Rows in the Blob table. For hosts with neither a persistent disk nor a bucket; fine for modest volumes. */
+class DatabaseBlobStore implements BlobStore {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async put(key: string, body: Buffer, contentType?: string) {
+    const data = new Uint8Array(body);
+    await this.prisma.blob.upsert({ where: { key }, create: { key, data, contentType }, update: { data, contentType } });
+  }
+
+  async get(key: string) {
+    const row = await this.prisma.blob.findUnique({ where: { key } });
+    return row ? Buffer.from(row.data) : null;
+  }
+
+  async delete(key: string) {
+    await this.prisma.blob.deleteMany({ where: { key } });
+  }
+}
+
+/** S3_BUCKET set -> bucket; STORAGE_DRIVER=database -> Postgres; otherwise local disk under UPLOAD_DIR. */
+export function createBlobStore(config: ConfigService, prisma: PrismaService): BlobStore {
   const bucket = config.get<string>('S3_BUCKET');
   if (bucket) return new S3BlobStore(bucket, config);
+  if (config.get<string>('STORAGE_DRIVER') === 'database') return new DatabaseBlobStore(prisma);
   return new DiskBlobStore(resolve(config.get<string>('UPLOAD_DIR', 'uploads')));
 }

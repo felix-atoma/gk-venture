@@ -177,3 +177,12 @@ model GalleryPhoto {
   published Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+/// Uploaded file bytes when STORAGE_DRIVER=database (hosts with no persistent disk and no bucket).
+/// Private files are stored already encrypted; see StorageService.
+model Blob {
+  key         String   @id
+  data        Bytes
+  contentType String?
+  createdAt   DateTime @default(now())
+}

@@ -20,7 +20,7 @@ export class StorageService {
     config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.blobs = createBlobStore(config);
+    this.blobs = createBlobStore(config, prisma);
 
     this.key = Buffer.from(config.getOrThrow<string>('FILE_ENCRYPTION_KEY'), 'base64');
     if (this.key.length !== 32) {
