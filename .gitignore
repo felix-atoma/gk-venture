@@ -4,3 +4,4 @@ dist
 server/uploads
 *.log
 dist-ssr
+.neon
