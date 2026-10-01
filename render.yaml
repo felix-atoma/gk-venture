@@ -1,4 +1,4 @@
-# Render Blueprint: the API (NestJS) and its PostgreSQL database.
+# Render Blueprint: the API (NestJS). The PostgreSQL database is external (Neon), set via DATABASE_URL.
 # The frontend is on Vercel (client/vercel.json), which proxies /api and /uploads to this service.
 services:
   - type: web
@@ -11,10 +11,9 @@ services:
     startCommand: npx prisma migrate deploy && npx prisma db seed && node dist/main
     healthCheckPath: /api/health
     envVars:
+      # Postgres connection string (Neon: use the direct, non-pooled URL with ?sslmode=require)
       - key: DATABASE_URL
-        fromDatabase:
-          name: gk-ventures-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       # 32 random bytes, base64. NEVER change once files are stored.
@@ -57,8 +56,3 @@ services:
         sync: false
       - key: TURNSTILE_SECRET_KEY
         sync: false
-
-databases:
-  - name: gk-ventures-db
-    plan: free
-    databaseName: gk_ventures
