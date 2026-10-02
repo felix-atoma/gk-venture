@@ -3,11 +3,8 @@ export const SITE = {
   legalName: 'G|K Ventures - Commission for Oaths and Paralegal Service in ADR Centre',
   tagline: 'Commission for Oaths and Paralegal Service in Alternative Dispute Resolution (ADR) Centre',
   act: 'Under the ADR Act, 2010 (Act 798)',
-  /**
-   * The site's public address: canonical links, sitemap, robots.txt and share previews all use it.
-   * Switch to https://kadawalegalservices.com (here, or via VITE_SITE_URL on Vercel) once that domain is live.
-   */
-  url: ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://gk-ventures.vercel.app').replace(/\/$/, ''),
+  /** The site's public address: canonical links, sitemap, robots.txt and share previews all use it (override: VITE_SITE_URL). */
+  url: ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://kadawalegalservices.com').replace(/\/$/, ''),
   address: 'P. O. Box AN 5765, Accra-North, Ghana',
   phones: ['+233 545 032 058', '+233 544 997 355'],
   email: 'gilbertadawa@gmail.com',
