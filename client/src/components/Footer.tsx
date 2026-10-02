@@ -80,7 +80,10 @@ export function Footer() {
       <div className="footer__bottom">
         <div className="container">
           &copy; {new Date().getFullYear()} G|K Ventures. All rights reserved. Content on this site is general
-          information, not legal advice.
+          information, not legal advice.{' '}
+          <Link to="/admin" rel="nofollow" className="footer__staff">
+            Staff login
+          </Link>
         </div>
       </div>
     </footer>

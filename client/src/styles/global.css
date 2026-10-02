@@ -1319,6 +1319,10 @@ html[data-high-contrast] .process__num {
   font-size: 0.85rem;
   text-align: center;
 }
+.footer__staff {
+  margin-left: 8px;
+  text-decoration: underline;
+}
 
 .whatsapp-float {
   position: fixed;
