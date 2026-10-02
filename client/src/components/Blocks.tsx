@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useText } from '../lib/content';
 import { ServiceInfo, SITE, telHref, whatsappHref } from '../lib/site';
+import { BreadcrumbSchema } from './Seo';
 
 export function SectionTitle({ overline, title, children, light }: { overline: string; title: string; children?: ReactNode; light?: boolean }) {
   return (
@@ -18,6 +19,7 @@ export function SectionTitle({ overline, title, children, light }: { overline: s
 export function PageBanner({ title, crumbs }: { title: string; crumbs: { label: string; to?: string }[] }) {
   return (
     <section className="page-banner">
+      <BreadcrumbSchema crumbs={crumbs} />
       <div className="container">
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <Link to="/">Home</Link>

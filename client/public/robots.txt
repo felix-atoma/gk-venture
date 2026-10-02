@@ -1,4 +1,0 @@
-User-agent: *
-Disallow: /admin
-Disallow: /sign/
-Sitemap: https://kadawalegalservices.com/sitemap.xml

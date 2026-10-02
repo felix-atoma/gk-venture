@@ -31,7 +31,7 @@ const HEAD_TAG =
   /<title>[\s\S]*?<\/title>|<meta\b[^>]*>|<link\b[^>]*rel="canonical"[^>]*>|<script type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/g;
 
 const template = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
-const { render } = await import(pathToFileURL(ssrEntry).href);
+const { render, SITE } = await import(pathToFileURL(ssrEntry).href);
 
 let content = {};
 if (process.env.PRERENDER_API_URL) {
@@ -64,5 +64,21 @@ for (const route of ROUTES) {
   const title = /<title[^>]*>([\s\S]*?)<\/title>/.exec(html)?.[1];
   console.log(`prerender: ${route.padEnd(38)} ${title}`);
 }
+
+// Sitemap and robots.txt follow SITE.url, so they always match the canonical links.
+const PRIORITY = { '/': '1.0', '/services/legal-documents': '0.9', '/services/translation-interpretation': '0.9', '/services/matrimonial-civil': '0.9' };
+const today = new Date().toISOString().slice(0, 10);
+const urls = ROUTES.map(
+  (r) => `  <url><loc>${SITE.url}${r === '/' ? '/' : r}</loc><lastmod>${today}</lastmod><priority>${PRIORITY[r] ?? '0.7'}</priority></url>`,
+);
+fs.writeFileSync(
+  path.join(dist, 'sitemap.xml'),
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`,
+);
+fs.writeFileSync(
+  path.join(dist, 'robots.txt'),
+  `User-agent: *\nDisallow: /admin\nDisallow: /sign/\nDisallow: /payment/callback\n\nSitemap: ${SITE.url}/sitemap.xml\n`,
+);
+console.log(`prerender: sitemap.xml and robots.txt for ${SITE.url}`);
 
 fs.rmSync(path.resolve('dist-ssr'), { recursive: true, force: true });

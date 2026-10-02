@@ -2,7 +2,7 @@ import { CheckCircle2, ClipboardList, CreditCard, FileSignature, MessageCircle, 
 import { Link, useParams } from 'react-router-dom';
 import { CtaBand, PageBanner, ServiceIcon } from '../components/Blocks';
 import { InquiryForm } from '../components/InquiryForm';
-import { Seo } from '../components/Seo';
+import { Seo, ServiceSchema } from '../components/Seo';
 import { ContentKey, useText } from '../lib/content';
 import { SERVICES, whatsappHref } from '../lib/site';
 import NotFound from './NotFound';
@@ -45,6 +45,7 @@ export default function ServiceDetail() {
   return (
     <>
       <Seo title={service.seo.title} description={service.seo.description} />
+      <ServiceSchema service={service} />
       <PageBanner title={service.title} crumbs={[{ label: 'Services', to: '/services' }, { label: service.title }]} />
       <section className="section">
         <div className="container with-sidebar">
