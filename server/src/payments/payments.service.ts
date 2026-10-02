@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -7,16 +8,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Payment, PaymentStatus, Prisma } from '@prisma/client';
+import { Payment, PaymentLinkStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { AuthUser } from '../auth/jwt-auth.guard';
 import { AuditService } from '../common/audit.service';
 import { emailLayout, escapeHtml, MailService } from '../common/mail.service';
 import { RequestMeta } from '../common/request-meta';
 import { SERVICE_LABELS } from '../common/service-labels';
 import { PrismaService } from '../prisma/prisma.service';
-import { InitializePaymentDto, ListPaymentsQuery } from './payments.dto';
+import { CreatePaymentLinkDto, InitializePaymentDto, ListPaymentsQuery } from './payments.dto';
 
 const PAYSTACK_API = 'https://api.paystack.co';
+
+/** Quotes a CSV cell and defuses spreadsheet formulas (=, +, -, @) in user-supplied text. */
+const csvCell = (v: string) => `"${(/^[=+\-@\t\r]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
 
 interface PaystackTransaction {
   status: string; // success | failed | abandoned | ongoing | pending ...
@@ -52,17 +57,20 @@ export class PaymentsService {
     if (!this.secret) {
       throw new ServiceUnavailableException('Online payments are not available yet. Please contact us to pay.');
     }
+    // A payment link fixes what is being paid for; the browser's amount is ignored.
+    const link = dto.linkCode ? await this.openLink(dto.linkCode) : null;
     const reference = `GKV-${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`.toUpperCase();
-    const amount = Math.round(dto.amount * 100);
+    const amount = link ? link.amount : Math.round(dto.amount * 100);
     const payment = await this.prisma.payment.create({
       data: {
         reference,
         fullName: dto.fullName.trim(),
         email: dto.email.trim().toLowerCase(),
         phone: dto.phone.trim(),
-        service: dto.service,
-        description: dto.description?.trim() || null,
+        service: link ? link.service : dto.service,
+        description: (link ? link.description : dto.description?.trim()) || null,
         amount,
+        paymentLinkId: link?.id,
       },
     });
 
@@ -174,9 +182,108 @@ export class PaymentsService {
         actor: 'paystack',
         metadata: { reference: payment.reference, gatewayResponse: tx.gateway_response ?? null },
       });
+      if (status === PaymentStatus.SUCCESS && updated.paymentLinkId) {
+        await this.prisma.paymentLink.updateMany({
+          where: { id: updated.paymentLinkId, status: PaymentLinkStatus.OPEN },
+          data: { status: PaymentLinkStatus.PAID, paidAt: updated.paidAt ?? new Date() },
+        });
+      }
       if (status === PaymentStatus.SUCCESS) await this.sendReceipt(updated);
     }
     return updated;
+  }
+
+  /** Public view of a payment link, used to pre-fill the payment page. */
+  async getLink(code: string) {
+    const link = await this.prisma.paymentLink.findUnique({ where: { code } });
+    if (!link) throw new NotFoundException('This payment link is not valid. Please contact us.');
+    return {
+      code: link.code,
+      status: link.status,
+      amount: link.amount / 100,
+      service: link.service,
+      serviceLabel: SERVICE_LABELS[link.service],
+      description: link.description,
+      fullName: link.fullName,
+      email: link.email,
+      phone: link.phone,
+    };
+  }
+
+  async createLink(dto: CreatePaymentLinkDto, user: AuthUser, meta: RequestMeta) {
+    const link = await this.prisma.paymentLink.create({
+      data: {
+        code: randomBytes(6).toString('base64url'),
+        fullName: dto.fullName?.trim() || null,
+        email: dto.email?.trim().toLowerCase() || null,
+        phone: dto.phone?.trim() || null,
+        service: dto.service,
+        description: dto.description?.trim() || null,
+        amount: Math.round(dto.amount * 100),
+        createdBy: user.email,
+      },
+    });
+    await this.audit.log({
+      action: 'PAYMENT_LINK_CREATED',
+      entityType: 'PaymentLink',
+      entityId: link.id,
+      actor: user.email,
+      meta,
+      metadata: { amount: link.amount },
+    });
+    return link;
+  }
+
+  listLinks() {
+    return this.prisma.paymentLink.findMany({ orderBy: { createdAt: 'desc' }, take: 50 });
+  }
+
+  async cancelLink(id: string, user: AuthUser, meta: RequestMeta) {
+    const { count } = await this.prisma.paymentLink.updateMany({
+      where: { id, status: PaymentLinkStatus.OPEN },
+      data: { status: PaymentLinkStatus.CANCELLED },
+    });
+    if (count === 0) throw new NotFoundException('Only unpaid links can be cancelled');
+    await this.audit.log({ action: 'PAYMENT_LINK_CANCELLED', entityType: 'PaymentLink', entityId: id, actor: user.email, meta });
+    return { ok: true };
+  }
+
+  /** All payments (optionally by status) as CSV, for bookkeeping. */
+  async exportCsv(status?: PaymentStatus) {
+    const rows = await this.prisma.payment.findMany({
+      where: status ? { status } : {},
+      orderBy: { createdAt: 'desc' },
+      omit: { providerData: true },
+    });
+    const header = ['Date', 'Paid at', 'Reference', 'Status', 'Name', 'Email', 'Phone', 'Service', 'Description', 'Amount (GHS)', 'Channel'];
+    const lines = rows.map((p) =>
+      [
+        p.createdAt.toISOString(),
+        p.paidAt?.toISOString() ?? '',
+        p.reference,
+        p.status,
+        p.fullName,
+        p.email,
+        p.phone,
+        SERVICE_LABELS[p.service],
+        p.description ?? '',
+        (p.amount / 100).toFixed(2),
+        p.channel ?? '',
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+    // BOM so Excel opens it as UTF-8.
+    return Buffer.from('﻿' + [header.join(','), ...lines].join('\r\n'), 'utf8');
+  }
+
+  private async openLink(code: string) {
+    const link = await this.prisma.paymentLink.findUnique({ where: { code } });
+    if (!link || link.status === PaymentLinkStatus.CANCELLED) {
+      throw new NotFoundException('This payment link is no longer valid. Please contact us.');
+    }
+    if (link.status === PaymentLinkStatus.PAID) throw new ConflictException('This payment link has already been paid.');
+    return link;
   }
 
   private async sendReceipt(p: Payment) {

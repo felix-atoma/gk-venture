@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CtaBand, SectionTitle, ServiceCard } from '../components/Blocks';
 import { ScalesMark } from '../components/Logo';
 import { Seo } from '../components/Seo';
+import { Testimonials } from '../components/Testimonials';
 import { useText } from '../lib/content';
 import { SERVICES, SITE, whatsappHref } from '../lib/site';
 
@@ -187,6 +188,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Testimonials />
 
       <section className="section section--navy section--photo">
         <div className="container split split--center">

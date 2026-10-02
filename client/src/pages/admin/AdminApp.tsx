@@ -1,4 +1,4 @@
-import { CreditCard, FileSignature, Image, Inbox, KeyRound, LogOut, PenSquare, Users as UsersIcon } from 'lucide-react';
+import { CreditCard, FileSignature, Image, Inbox, KeyRound, LogOut, PenSquare, Quote, Users as UsersIcon } from 'lucide-react';
 import { createContext, FormEvent, useContext, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { Alert } from '../../components/Blocks';
@@ -10,6 +10,7 @@ import Gallery from './Gallery';
 import Inquiries from './Inquiries';
 import Payments from './Payments';
 import Signing from './Signing';
+import TestimonialsAdmin from './TestimonialsAdmin';
 import Users from './Users';
 
 export interface AdminUser {
@@ -127,6 +128,7 @@ const TABS = [
   { to: 'signing', label: 'E-Signing', icon: FileSignature },
   { to: 'content', label: 'Site Content', icon: PenSquare },
   { to: 'gallery', label: 'Court Gallery', icon: Image },
+  { to: 'testimonials', label: 'Testimonials', icon: Quote },
   { to: 'users', label: 'Staff Accounts', icon: UsersIcon, adminOnly: true },
   { to: 'account', label: 'My Account', icon: KeyRound },
 ];
@@ -201,6 +203,7 @@ function Protected() {
             <Route path="signing" element={<Signing />} />
             <Route path="content" element={<ContentEditor />} />
             <Route path="gallery" element={<Gallery />} />
+            <Route path="testimonials" element={<TestimonialsAdmin />} />
             {user.role === 'ADMIN' && <Route path="users" element={<Users />} />}
             <Route path="account" element={<Account />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />

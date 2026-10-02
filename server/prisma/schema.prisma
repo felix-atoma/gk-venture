@@ -34,6 +34,12 @@ enum PaymentStatus {
   ABANDONED
 }
 
+enum PaymentLinkStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
 enum SignatureStatus {
   PENDING
   VIEWED
@@ -89,9 +95,24 @@ model Inquiry {
   ipAddress   String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  /// Appointment time the customer asked for (optional).
+  preferredAt DateTime?
   attachments StoredFile[]
+  notes       InquiryNote[]
 
   @@index([status, createdAt])
+}
+
+/// Private staff notes on an inquiry (calls made, next steps).
+model InquiryNote {
+  id        String   @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  text      String
+  author    String
+  createdAt DateTime @default(now())
+
+  @@index([inquiryId, createdAt])
 }
 
 model Payment {
@@ -111,6 +132,32 @@ model Payment {
   providerData Json?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  paymentLinkId String?
+  paymentLink   PaymentLink? @relation(fields: [paymentLinkId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+/// A fixed-amount payment request staff send to a client (e.g. by WhatsApp): /payment?link=<code>.
+model PaymentLink {
+  id          String            @id @default(cuid())
+  /// Random, unguessable code used in the public URL.
+  code        String            @unique
+  fullName    String?
+  email       String?
+  phone       String?
+  service     ServiceType
+  description String?
+  /// Amount in pesewas (GHS x 100)
+  amount      Int
+  status      PaymentLinkStatus @default(OPEN)
+  createdBy   String
+  paidAt      DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  payments Payment[]
 
   @@index([status, createdAt])
 }
@@ -173,6 +220,18 @@ model GalleryPhoto {
   court     String?
   role      String?
   year      Int?
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/// Client quotes shown on the home page.
+model Testimonial {
+  id        String   @id @default(cuid())
+  quote     String
+  name      String
+  /// e.g. "Affidavit client, Accra"
+  detail    String?
   sortOrder Int      @default(0)
   published Boolean  @default(true)
   createdAt DateTime @default(now())

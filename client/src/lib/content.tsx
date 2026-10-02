@@ -50,6 +50,16 @@ export const EDITABLE_CONTENT = {
     label: 'Google Maps location (address or place name of the office)',
     default: 'Accra North, Accra, Ghana',
   },
+  // Per-service boxes on each service page; hidden while empty.
+  'service.legal-documents.fees': { label: 'Legal Documents - fees (one per line; leave empty to hide)', default: '' },
+  'service.legal-documents.bring': { label: 'Legal Documents - what to bring (one per line; leave empty to hide)', default: '' },
+  'service.translation-interpretation.fees': { label: 'Translation / Interpretation - fees (one per line; leave empty to hide)', default: '' },
+  'service.translation-interpretation.bring': {
+    label: 'Translation / Interpretation - what to bring (one per line; leave empty to hide)',
+    default: '',
+  },
+  'service.matrimonial-civil.fees': { label: 'Matrimonial & Civil - fees (one per line; leave empty to hide)', default: '' },
+  'service.matrimonial-civil.bring': { label: 'Matrimonial & Civil - what to bring (one per line; leave empty to hide)', default: '' },
 } as const;
 
 export type ContentKey = keyof typeof EDITABLE_CONTENT;

@@ -5,7 +5,7 @@ import { AuthUser, CurrentUser, JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ReqMeta, RequestMeta } from '../common/request-meta';
 import { sendFile } from '../common/send-file';
 import { documentUpload } from '../common/uploads';
-import { CreateInquiryDto, ListInquiriesQuery, UpdateInquiryDto } from './inquiries.dto';
+import { AddInquiryNoteDto, CreateInquiryDto, ListInquiriesQuery, UpdateInquiryDto } from './inquiries.dto';
 import { InquiriesService } from './inquiries.service';
 
 @Controller('inquiries')
@@ -33,6 +33,12 @@ export class InquiriesController {
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdateInquiryDto, @CurrentUser() user: AuthUser, @ReqMeta() meta: RequestMeta) {
     return this.inquiries.updateStatus(id, dto, user, meta);
+  }
+
+  @Post(':id/notes')
+  @UseGuards(JwtAuthGuard)
+  addNote(@Param('id') id: string, @Body() dto: AddInquiryNoteDto, @CurrentUser() user: AuthUser) {
+    return this.inquiries.addNote(id, dto, user);
   }
 
   @Get(':id/files/:fileId')

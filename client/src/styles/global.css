@@ -1567,6 +1567,138 @@ html[data-high-contrast] .process__num {
   max-width: 480px;
 }
 
+/* Payment link summary on /payment?link=... */
+.pay-summary {
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  background: var(--offwhite);
+  border-left: 4px solid var(--gold);
+}
+.pay-summary strong {
+  font-size: 1.8rem;
+  color: var(--navy);
+}
+
+/* Admin: inquiry search, notes, appointments */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.search-box input {
+  border: 0;
+  padding: 8px 0;
+  min-width: 220px;
+  outline: none;
+}
+.admin-item__icons {
+  display: inline-flex;
+  gap: 6px;
+  color: var(--navy);
+}
+.appointment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff4dc;
+  color: #6b4b00;
+}
+.notes {
+  margin: 18px 0;
+  padding: 14px 16px;
+  background: var(--offwhite);
+}
+.notes h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.note {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.note p {
+  margin: 0 0 2px;
+}
+.note-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 10px;
+}
+.note-form textarea {
+  flex: 1;
+}
+
+/* Testimonials */
+.testimonial {
+  margin: 0;
+  padding: 28px 26px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.testimonial__mark {
+  color: var(--gold);
+}
+.testimonial blockquote {
+  margin: 0;
+  font-style: italic;
+  flex: 1;
+}
+.testimonial figcaption {
+  display: grid;
+  gap: 2px;
+}
+.testimonial figcaption span {
+  font-size: 0.85rem;
+  color: var(--charcoal);
+}
+.testimonial-admin {
+  padding: 16px 18px;
+}
+.testimonial-admin blockquote {
+  margin: 0 0 8px;
+  font-style: italic;
+}
+.testimonial-admin--hidden {
+  opacity: 0.6;
+}
+
+/* Service page: fees / what to bring */
+.info-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+.info-box {
+  padding: 20px 22px;
+  background: var(--offwhite);
+  border-top: 3px solid var(--gold);
+}
+.info-box h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+.info-box ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .navbar__toggle {

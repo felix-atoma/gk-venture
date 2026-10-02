@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ReqMeta, RequestMeta } from '../common/request-meta';
 import { imageUpload } from '../common/uploads';
-import { GalleryPhotoDto, UpdateContentDto, UpdateGalleryPhotoDto } from './content.dto';
+import { GalleryPhotoDto, TestimonialDto, UpdateContentDto, UpdateGalleryPhotoDto, UpdateTestimonialDto } from './content.dto';
 import { ContentService } from './content.service';
 
 @Controller()
@@ -54,5 +54,34 @@ export class ContentController {
   @UseGuards(JwtAuthGuard)
   deletePhoto(@Param('id') id: string, @CurrentUser() user: AuthUser, @ReqMeta() meta: RequestMeta) {
     return this.content.deletePhoto(id, user, meta);
+  }
+
+  @Get('testimonials')
+  testimonials() {
+    return this.content.testimonials();
+  }
+
+  @Get('testimonials/all')
+  @UseGuards(JwtAuthGuard)
+  testimonialsAll() {
+    return this.content.testimonials(true);
+  }
+
+  @Post('testimonials')
+  @UseGuards(JwtAuthGuard)
+  addTestimonial(@Body() dto: TestimonialDto) {
+    return this.content.addTestimonial(dto);
+  }
+
+  @Patch('testimonials/:id')
+  @UseGuards(JwtAuthGuard)
+  updateTestimonial(@Param('id') id: string, @Body() dto: UpdateTestimonialDto) {
+    return this.content.updateTestimonial(id, dto);
+  }
+
+  @Delete('testimonials/:id')
+  @UseGuards(JwtAuthGuard)
+  deleteTestimonial(@Param('id') id: string) {
+    return this.content.deleteTestimonial(id);
   }
 }

@@ -33,6 +33,10 @@ export function InquiryForm({ defaultService }: { defaultService?: ServiceType }
     const form = new FormData(formEl);
     form.delete('files');
     files.forEach((f) => form.append('files', f));
+    // datetime-local has no time zone; send an exact instant.
+    const preferred = form.get('preferredAt');
+    if (preferred) form.set('preferredAt', new Date(String(preferred)).toISOString());
+    else form.delete('preferredAt');
     if (captcha) form.set('captchaToken', captcha);
     setStatus('sending');
     setError('');
@@ -91,6 +95,11 @@ export function InquiryForm({ defaultService }: { defaultService?: ServiceType }
       <label>
         Message *
         <textarea name="message" required minLength={10} maxLength={5000} rows={6} placeholder="Briefly describe your matter or the document you need." />
+      </label>
+      <label>
+        Preferred appointment (optional)
+        <input name="preferredAt" type="datetime-local" />
+        <small className="muted">If you would like to visit our office, pick a date and time - we will call to confirm.</small>
       </label>
       {/* Honeypot: hidden from people, tempting to bots */}
       <label className="hp" aria-hidden="true">

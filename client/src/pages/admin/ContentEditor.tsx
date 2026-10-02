@@ -47,7 +47,7 @@ export default function ContentEditor() {
       <form className="form panel" onSubmit={save}>
         {KEYS.map((k) => {
           const def = EDITABLE_CONTENT[k];
-          const long = def.default.length > 80 || k.startsWith('about') || k.endsWith('subheadline');
+          const long = def.default.length > 80 || k.startsWith('about') || k.startsWith('service.') || k.endsWith('subheadline');
           return (
             <label key={k}>
               <span className="label-row">

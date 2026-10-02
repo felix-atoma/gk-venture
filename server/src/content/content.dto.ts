@@ -52,3 +52,41 @@ export class UpdateGalleryPhotoDto extends GalleryMetaDto {
   @Length(2, 300)
   caption?: string;
 }
+
+class TestimonialMetaDto {
+  @IsOptional()
+  @IsString()
+  @Length(0, 120)
+  detail?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+}
+
+export class TestimonialDto extends TestimonialMetaDto {
+  @IsString()
+  @Length(10, 600)
+  quote: string;
+
+  @IsString()
+  @Length(2, 120)
+  name: string;
+}
+
+export class UpdateTestimonialDto extends TestimonialMetaDto {
+  @IsOptional()
+  @IsString()
+  @Length(10, 600)
+  quote?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  name?: string;
+}

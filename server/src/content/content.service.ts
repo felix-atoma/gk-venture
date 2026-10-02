@@ -4,7 +4,7 @@ import { RequestMeta } from '../common/request-meta';
 import { StorageService } from '../common/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../auth/jwt-auth.guard';
-import { GalleryPhotoDto, UpdateGalleryPhotoDto } from './content.dto';
+import { GalleryPhotoDto, TestimonialDto, UpdateGalleryPhotoDto, UpdateTestimonialDto } from './content.dto';
 
 const KEY_PATTERN = /^[a-z0-9]+(\.[a-z0-9-]+){1,4}$/;
 const MAX_VALUE = 10_000;
@@ -69,6 +69,30 @@ export class ContentService {
     return this.prisma.galleryPhoto.update({ where: { id }, data: dto }).catch(() => {
       throw new NotFoundException();
     });
+  }
+
+  testimonials(includeHidden = false) {
+    return this.prisma.testimonial.findMany({
+      where: includeHidden ? {} : { published: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  addTestimonial(dto: TestimonialDto) {
+    return this.prisma.testimonial.create({ data: { ...dto, detail: dto.detail?.trim() || null } });
+  }
+
+  updateTestimonial(id: string, dto: UpdateTestimonialDto) {
+    return this.prisma.testimonial.update({ where: { id }, data: dto }).catch(() => {
+      throw new NotFoundException();
+    });
+  }
+
+  async deleteTestimonial(id: string) {
+    await this.prisma.testimonial.delete({ where: { id } }).catch(() => {
+      throw new NotFoundException();
+    });
+    return { ok: true };
   }
 
   async deletePhoto(id: string, user: AuthUser, meta: RequestMeta) {

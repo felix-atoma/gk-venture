@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuditService } from '../common/audit.service';
 import { CaptchaService } from '../common/captcha.service';
 import { emailLayout, escapeHtml, MailService } from '../common/mail.service';
@@ -7,7 +8,10 @@ import { SERVICE_LABELS } from '../common/service-labels';
 import { StorageService } from '../common/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../auth/jwt-auth.guard';
-import { CreateInquiryDto, ListInquiriesQuery, UpdateInquiryDto } from './inquiries.dto';
+import { AddInquiryNoteDto, CreateInquiryDto, ListInquiriesQuery, UpdateInquiryDto } from './inquiries.dto';
+
+const fmtAccra = (d: Date) =>
+  d.toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'full', timeStyle: 'short' });
 
 @Injectable()
 export class InquiriesService {
@@ -31,6 +35,7 @@ export class InquiriesService {
         email: dto.email.trim().toLowerCase(),
         service: dto.service,
         message: dto.message.trim(),
+        preferredAt: dto.preferredAt ? new Date(dto.preferredAt) : null,
         ipAddress: meta.ip,
       },
     });
@@ -49,6 +54,7 @@ export class InquiriesService {
 
     const ref = inquiry.id.slice(-8).toUpperCase();
     const service = SERVICE_LABELS[inquiry.service];
+    const preferred = inquiry.preferredAt ? fmtAccra(inquiry.preferredAt) : null;
     await this.mail.send({
       to: this.mail.notifyEmail,
       replyTo: inquiry.email,
@@ -56,7 +62,8 @@ export class InquiriesService {
       html: emailLayout(
         'New website inquiry',
         `<p><b>Name:</b> ${escapeHtml(inquiry.fullName)}<br><b>Phone:</b> ${escapeHtml(inquiry.phone)}<br>
-        <b>Email:</b> ${escapeHtml(inquiry.email)}<br><b>Service:</b> ${service}</p>
+        <b>Email:</b> ${escapeHtml(inquiry.email)}<br><b>Service:</b> ${service}
+        ${preferred ? `<br><b>Preferred appointment:</b> ${preferred}` : ''}</p>
         <p style="white-space:pre-wrap">${escapeHtml(inquiry.message)}</p>
         <p>${files.length} attachment(s) are stored encrypted - view them in the admin dashboard.</p>`,
       ),
@@ -71,6 +78,7 @@ export class InquiriesService {
         `<p>Dear ${escapeHtml(inquiry.fullName)},</p>
         <p>We have received your inquiry regarding <b>${service}</b>. Our team will review it and respond promptly.
         Your reference is <b>${ref}</b>.</p>
+        ${preferred ? `<p>You asked for an appointment on <b>${preferred}</b>. We will contact you to confirm the time.</p>` : ''}
         <p>For urgent matters, call or WhatsApp us on +233 545 032 058.</p>`,
       ),
     });
@@ -78,14 +86,32 @@ export class InquiriesService {
   }
 
   async list(q: ListInquiriesQuery) {
-    const where = q.status ? { status: q.status } : {};
+    const term = q.q?.trim();
+    const where: Prisma.InquiryWhereInput = {
+      ...(q.status ? { status: q.status } : {}),
+      ...(term
+        ? {
+            OR: [
+              { fullName: { contains: term, mode: 'insensitive' } },
+              { email: { contains: term, mode: 'insensitive' } },
+              { phone: { contains: term } },
+              { message: { contains: term, mode: 'insensitive' } },
+              // The reference shown to customers is the last 8 characters of the id, upper-cased.
+              { id: { endsWith: term.toLowerCase() } },
+            ],
+          }
+        : {}),
+    };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.inquiry.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
-        include: { attachments: { select: { id: true, originalName: true, mimeType: true, size: true } } },
+        include: {
+          attachments: { select: { id: true, originalName: true, mimeType: true, size: true } },
+          notes: { orderBy: { createdAt: 'asc' } },
+        },
       }),
       this.prisma.inquiry.count({ where }),
     ]);
@@ -105,6 +131,12 @@ export class InquiriesService {
       metadata: { status: dto.status },
     });
     return inquiry;
+  }
+
+  async addNote(id: string, dto: AddInquiryNoteDto, user: AuthUser) {
+    const exists = await this.prisma.inquiry.count({ where: { id } });
+    if (!exists) throw new NotFoundException('Inquiry not found');
+    return this.prisma.inquiryNote.create({ data: { inquiryId: id, text: dto.text.trim(), author: user.name } });
   }
 
   async attachment(inquiryId: string, fileId: string, user: AuthUser, meta: RequestMeta) {

@@ -1,6 +1,8 @@
 import { InquiryStatus, ServiceType } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsEmail, IsEnum, IsInt, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsDateString, IsEmail, IsEnum, IsInt, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
+
+const emptyToUndefined = ({ value }: { value: unknown }) => (value === '' ? undefined : value);
 
 export class CreateInquiryDto {
   @IsString()
@@ -20,6 +22,12 @@ export class CreateInquiryDto {
   @Length(10, 5000, { message: 'Message must be between 10 and 5000 characters' })
   message: string;
 
+  /** Preferred appointment time (ISO 8601), optional. */
+  @IsOptional()
+  @Transform(emptyToUndefined)
+  @IsDateString({}, { message: 'Choose a valid appointment date and time' })
+  preferredAt?: string;
+
   @IsOptional()
   @IsString()
   captchaToken?: string;
@@ -34,6 +42,12 @@ export class ListInquiriesQuery {
   @IsOptional()
   @IsEnum(InquiryStatus)
   status?: InquiryStatus;
+
+  /** Search by name, phone, email, message or reference. */
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  q?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -52,4 +66,10 @@ export class ListInquiriesQuery {
 export class UpdateInquiryDto {
   @IsEnum(InquiryStatus)
   status: InquiryStatus;
+}
+
+export class AddInquiryNoteDto {
+  @IsString()
+  @Length(1, 2000)
+  text: string;
 }

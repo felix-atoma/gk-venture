@@ -1,10 +1,41 @@
-import { CheckCircle2, CreditCard, FileSignature, MessageCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardList, CreditCard, FileSignature, MessageCircle, Wallet } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { CtaBand, PageBanner, ServiceIcon } from '../components/Blocks';
 import { InquiryForm } from '../components/InquiryForm';
 import { Seo } from '../components/Seo';
+import { ContentKey, useText } from '../lib/content';
 import { SERVICES, whatsappHref } from '../lib/site';
 import NotFound from './NotFound';
+
+/** Fees and "what to bring" lists, edited under Site Content; each box is hidden while empty. */
+function ServiceInfoBoxes({ slug }: { slug: string }) {
+  const t = useText();
+  const boxes = [
+    { title: 'Fees', icon: Wallet, text: t(`service.${slug}.fees` as ContentKey) },
+    { title: 'What to bring', icon: ClipboardList, text: t(`service.${slug}.bring` as ContentKey) },
+  ].filter((b) => b.text?.trim());
+  if (boxes.length === 0) return null;
+  return (
+    <div className="info-boxes">
+      {boxes.map(({ title, icon: Icon, text }) => (
+        <div key={title} className="info-box">
+          <h3>
+            <Icon size={20} /> {title}
+          </h3>
+          <ul>
+            {text
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ServiceDetail() {
   const { slug } = useParams();
@@ -31,6 +62,7 @@ export default function ServiceDetail() {
               ))}
             </ul>
             <p>{service.outro}</p>
+            <ServiceInfoBoxes slug={service.slug} />
             <div className="btn-row">
               <Link to={service.cta.to} className="btn btn--gold">
                 {service.cta.label}
