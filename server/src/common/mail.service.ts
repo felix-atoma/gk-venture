@@ -28,6 +28,10 @@ export class MailService {
         port,
         secure: port === 465,
         auth: { user: config.get('SMTP_USER'), pass: config.get('SMTP_PASS') },
+        // Fail fast: requests wait on send(), and an unreachable server would otherwise hang them for minutes.
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 20_000,
       });
     } else {
       this.logger.warn('SMTP_HOST not set - emails will be logged instead of sent.');
